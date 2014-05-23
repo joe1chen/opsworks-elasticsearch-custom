@@ -1,40 +1,26 @@
 # opsworks-elasticsearch-custom-cookbook
 
-TODO: Enter the cookbook description here.
+This cookbook contains the custom recipes mentioned in Amazon's blog post Deploying Elasticsearch with OpsWorks - (http://blogs.aws.amazon.com/application-management/post/Tx3MEVKS0A4G7R5/Deploying-Elasticsearch-with-OpsWorks)
 
-## Supported Platforms
+The esplugin recipe (/recipes/esplugins.rb) automates the installation of the elasticsearch-head plugin to add a nice GUI for monitoring the state of the cluster. The community cookbook version we tested had an issue with the installation of the plugins which is why we built our own custom recipe.
 
-TODO: List your supported platforms.
+A custom recipe was also required to configure monit so that it automatically restarts the elasticsearch service if it fails. The way the community cookbook sets up monit is not compatible with the OpsWorks configuration (OpsWorks itself uses monit to ensure its own agent is running). So our custom recipe simply copies the cookbook’s monit configuration file for the elasticsearch process to /etc/monit.d (/recipes/esmonit.rb).
 
-## Attributes
+Another custom recipe (/recipes/allocation-awareness.rb) configures Elasticsearch so that it is aware of each instance’s availability zone and spreads shards and their replicas so that even an Availability Zone disruption does not eliminate both a shard and its replica(s). This uses Opsworks’ Stack configuration JSON to retrieve the availability zone in which the particular instance is deployed and passes this information to the Elasticsearch configuration.
 
-<table>
-  <tr>
-    <th>Key</th>
-    <th>Type</th>
-    <th>Description</th>
-    <th>Default</th>
-  </tr>
-  <tr>
-    <td><tt>['opsworks-elasticsearch-custom']['bacon']</tt></td>
-    <td>Boolean</td>
-    <td>whether to include bacon</td>
-    <td><tt>true</tt></td>
-  </tr>
-</table>
+Finally we created a custom recipe (/recipes/cloudwatch-custom.rb) that pushes custom metrics into Amazon CloudWatch. In the example we simply send the number of Elasticsearch data nodes in the cluster. Based on that, we could create an alarm to notify us when this falls below the expected value. It would be simple to expand on this and add additional metrics.
 
 ## Usage
 
 ### opsworks-elasticsearch-custom::default
 
-Include `opsworks-elasticsearch-custom` in your node's `run_list`:
+Include the following recipes in your layer's Custom Chef Recipes:
 
 ```json
-{
-  "run_list": [
-    "recipe[opsworks-elasticsearch-custom::default]"
-  ]
-}
+opsworks-elasticsearch-custom::esplugins
+opsworks-elasticsearch-custom::allocation-awareness
+opsworks-elasticsearch-custom::esmonit
+opsworks-elasticsearch-custom::cloudwatch-custom
 ```
 
 ## Contributing
@@ -48,4 +34,4 @@ Include `opsworks-elasticsearch-custom` in your node's `run_list`:
 
 ## License and Authors
 
-Author:: YOUR_NAME (<YOUR_EMAIL>)
+Author:: Joseph Chen (joseph.chen@gmail.com)
